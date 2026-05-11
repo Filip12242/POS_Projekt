@@ -1,0 +1,6 @@
+# Claude Code lokale Konfiguration (nicht fuer das Team)
+.claude/
+
+# OS-Datein
+.DS_Store
+Thumbs.db
