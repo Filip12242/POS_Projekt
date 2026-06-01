@@ -1,5 +1,6 @@
 package at.spengergasse.lager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -8,14 +9,23 @@ import java.util.TreeMap;
 
 // Verwaltet alle Artikel im Lager.
 // Diese Klasse haelt die Liste und stellt alle fachlichen Operationen bereit:
-// CRUD, Filter, Sortierung, Gruppierung, Auswertungen und Combo-Methoden.
-// Noch offen: DateiService (Session 3), optionale Features (Log, Favoriten).
+// CRUD, Filter, Sortierung, Gruppierung, Auswertungen, Combo-Methoden,
+// Favoriten-Filter und ein Verlaufs-Log (optionale Features lt. Aufgabe).
 public class LagerVerwaltung {
 
     private ArrayList<Artikel> artikelListe;
+    // Verlaufs-Log: bei jeder CRUD-Aktion wird ein Eintrag angelegt.
+    private ArrayList<LogEintrag> verlauf;
 
     public LagerVerwaltung() {
         this.artikelListe = new ArrayList<>();
+        this.verlauf = new ArrayList<>();
+    }
+
+    // Interner Helfer, der einen Log-Eintrag anlegt. Wird von allen
+    // mutierenden Methoden aufgerufen.
+    private void log(String aktion) {
+        verlauf.add(new LogEintrag(aktion));
     }
 
     // Neuen Artikel hinzufuegen. ID muss eindeutig sein.
@@ -31,13 +41,17 @@ public class LagerVerwaltung {
             }
         }
         artikelListe.add(a);
+        log("Hinzugefuegt: " + a.getKategorie() + " #" + a.getId()
+                + " (" + a.getName() + ")");
     }
 
     // Artikel per ID entfernen. Gibt true zurueck, wenn etwas geloescht wurde.
     public boolean entfernen(int id) {
         for (int i = 0; i < artikelListe.size(); i++) {
             if (artikelListe.get(i).getId() == id) {
-                artikelListe.remove(i);
+                Artikel entfernt = artikelListe.remove(i);
+                log("Entfernt: " + entfernt.getKategorie() + " #" + entfernt.getId()
+                        + " (" + entfernt.getName() + ")");
                 return true;
             }
         }
@@ -292,5 +306,110 @@ public class LagerVerwaltung {
             }
         });
         return ergebnis;
+    }
+
+    // ---- Favoriten-Filter (optionales Feature lt. Aufgabe) ----
+
+    public ArrayList<Artikel> filterFavoriten() {
+        ArrayList<Artikel> ergebnis = new ArrayList<>();
+        for (Artikel a : artikelListe) {
+            if (a.istFavorit()) {
+                ergebnis.add(a);
+            }
+        }
+        return ergebnis;
+    }
+
+    // Markiert oder demarkiert einen Artikel als Favorit. Logged die Aktion.
+    public boolean markiereFavorit(int id, boolean favorit) {
+        for (Artikel a : artikelListe) {
+            if (a.getId() == id) {
+                a.setFavorit(favorit);
+                String aktion = favorit ? "Favorit gesetzt" : "Favorit entfernt";
+                log(aktion + ": #" + id + " (" + a.getName() + ")");
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---- Verlaufs-Log Zugriff ----
+
+    // Gibt eine Kopie der Log-Eintraege zurueck (defensive Kopie).
+    public ArrayList<LogEintrag> getVerlauf() {
+        return new ArrayList<>(verlauf);
+    }
+
+    // ---- Datei-Operationen (delegieren an DateiService, mit try-catch) ----
+    // Erfuellt §3 ("try-catch in der Verwaltung") und §4 ("Behandlung von I/O-Fehlern").
+
+    // Laedt Artikel aus einer Text-Datei und fuegt sie zur Liste hinzu.
+    // Defekte Zeilen werden uebersprungen und in den Log geschrieben — der Rest
+    // wird trotzdem geladen. Gibt die Anzahl erfolgreich geladener Artikel zurueck.
+    public int ladenAusDatei(String dateipfad) throws UngueltigeEingabeException {
+        ArrayList<Artikel> geladen;
+        try {
+            geladen = DateiService.laden(dateipfad);
+        } catch (IOException e) {
+            throw new UngueltigeEingabeException(
+                    "Datei konnte nicht gelesen werden: " + e.getMessage());
+        }
+        int erfolg = 0;
+        for (Artikel a : geladen) {
+            try {
+                hinzufuegen(a);
+                erfolg++;
+            } catch (UngueltigeEingabeException e) {
+                // z.B. doppelte ID -> ueberspringen, weiter laden
+                log("Beim Laden uebersprungen: #" + a.getId() + " (" + e.getMessage() + ")");
+            }
+        }
+        log("Aus Datei geladen: " + erfolg + " von " + geladen.size() + " Artikeln");
+        return erfolg;
+    }
+
+    // Analog fuer CSV-Format.
+    public int ladenAusCSV(String dateipfad) throws UngueltigeEingabeException {
+        ArrayList<Artikel> geladen;
+        try {
+            geladen = DateiService.ladenCSV(dateipfad);
+        } catch (IOException e) {
+            throw new UngueltigeEingabeException(
+                    "CSV-Datei konnte nicht gelesen werden: " + e.getMessage());
+        }
+        int erfolg = 0;
+        for (Artikel a : geladen) {
+            try {
+                hinzufuegen(a);
+                erfolg++;
+            } catch (UngueltigeEingabeException e) {
+                log("Beim CSV-Laden uebersprungen: #" + a.getId()
+                        + " (" + e.getMessage() + ")");
+            }
+        }
+        log("Aus CSV geladen: " + erfolg + " von " + geladen.size() + " Artikeln");
+        return erfolg;
+    }
+
+    // Speichert die aktuelle Liste in eine Text-Datei.
+    public void speichernInDatei(String dateipfad) throws UngueltigeEingabeException {
+        try {
+            DateiService.speichern(artikelListe, dateipfad);
+            log("In Datei gespeichert: " + dateipfad + " (" + artikelListe.size() + " Artikel)");
+        } catch (IOException e) {
+            throw new UngueltigeEingabeException(
+                    "Datei konnte nicht geschrieben werden: " + e.getMessage());
+        }
+    }
+
+    // Speichert die aktuelle Liste als CSV.
+    public void speichernAlsCSV(String dateipfad) throws UngueltigeEingabeException {
+        try {
+            DateiService.speichernCSV(artikelListe, dateipfad);
+            log("Als CSV gespeichert: " + dateipfad + " (" + artikelListe.size() + " Artikel)");
+        } catch (IOException e) {
+            throw new UngueltigeEingabeException(
+                    "CSV-Datei konnte nicht geschrieben werden: " + e.getMessage());
+        }
     }
 }

@@ -160,6 +160,36 @@ public class LagerverwaltungDemo {
             }
             System.out.println();
 
+            // ---- Favoriten (optionales Feature) ----
+            System.out.println("=== Favoriten markieren ===");
+            v.markiereFavorit(1, true);   // Laptop
+            v.markiereFavorit(3, true);   // Joghurt
+            for (Artikel a : v.filterFavoriten()) {
+                System.out.println("  ★ " + a.getName());
+            }
+            System.out.println();
+
+            // ---- DateiService Roundtrip: Text-Format ----
+            String pfadText = System.getProperty("java.io.tmpdir") + "/demo-lager.txt";
+            System.out.println("=== Speichern in Text-Datei: " + pfadText + " ===");
+            v.speichernInDatei(pfadText);
+            LagerVerwaltung neuText = new LagerVerwaltung();
+            int geladenText = neuText.ladenAusDatei(pfadText);
+            System.out.println("Geladen: " + geladenText + " Artikel");
+            for (Artikel a : neuText.alleAnzeigen()) {
+                System.out.println("  " + a + (a.istFavorit() ? " ★" : ""));
+            }
+            System.out.println();
+
+            // ---- DateiService Roundtrip: CSV-Format ----
+            String pfadCSV = System.getProperty("java.io.tmpdir") + "/demo-lager.csv";
+            System.out.println("=== Speichern als CSV: " + pfadCSV + " ===");
+            v.speichernAlsCSV(pfadCSV);
+            LagerVerwaltung neuCSV = new LagerVerwaltung();
+            int geladenCSV = neuCSV.ladenAusCSV(pfadCSV);
+            System.out.println("Geladen: " + geladenCSV + " Artikel aus CSV");
+            System.out.println();
+
             // ---- CRUD-Edge-Tests ----
             System.out.println("=== Suche nach 'Vollmilch' ===");
             System.out.println(v.suchen("Vollmilch"));
@@ -177,6 +207,14 @@ public class LagerverwaltungDemo {
                 System.out.println("FEHLER: Hier haette eine Exception kommen muessen!");
             } catch (UngueltigeEingabeException e) {
                 System.out.println("OK, Exception gefangen: " + e.getMessage());
+            }
+            System.out.println();
+
+            // ---- Verlaufs-Log (optionales Feature) ----
+            // Am Ende, damit alle vorherigen Aktionen drinstehen.
+            System.out.println("=== Verlaufs-Log (" + v.getVerlauf().size() + " Eintraege) ===");
+            for (LogEintrag e : v.getVerlauf()) {
+                System.out.println(e);
             }
 
         } catch (UngueltigeEingabeException e) {

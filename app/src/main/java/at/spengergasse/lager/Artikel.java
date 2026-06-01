@@ -14,6 +14,9 @@ public abstract class Artikel {
     private String marke;
     private double preis;
     private int bestand;
+    // Markierung: Artikel als Favorit gekennzeichnet (optionales Feature lt. Aufgabe).
+    // Default false, wird ueber setFavorit() gesetzt.
+    private boolean favorit;
 
     public Artikel(int id, String name, String marke, double preis, int bestand)
             throws UngueltigeEingabeException {
@@ -50,6 +53,15 @@ public abstract class Artikel {
 
     public int getBestand() {
         return bestand;
+    }
+
+    public boolean istFavorit() {
+        return favorit;
+    }
+
+    // boolean: keine Validierung noetig.
+    public void setFavorit(boolean favorit) {
+        this.favorit = favorit;
     }
 
     // ---- Setter mit Validierung ----
