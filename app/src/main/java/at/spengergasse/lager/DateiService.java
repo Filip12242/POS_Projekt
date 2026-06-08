@@ -10,6 +10,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 // Liest und schreibt Artikel-Listen aus/in Dateien.
 // Unterstuetzt zwei Formate: Text (semikolon-getrennt) und CSV (komma-getrennt, mit Header).
@@ -129,39 +130,46 @@ public class DateiService {
 
     // ---- Private Helfer: Eine Zeile schreiben / parsen ----
 
-    private static String formatZeile(Artikel a, String trenner) {
-        // Basis-Felder
-        String basis = a.getKategorie() + trenner
-                + a.getId() + trenner
-                + a.getName() + trenner
-                + a.getMarke() + trenner
-                + String.format(Locale.US, "%.2f", a.getPreis()) + trenner
-                + a.getBestand() + trenner
+    // Backslash zuerst escapen, dann das Trennzeichen — Reihenfolge ist wichtig.
+    private static String escapeField(String value, String trenner) {
+        return value.replace("\\", "\\\\").replace(trenner, "\\" + trenner);
+    }
+
+    // Umgekehrte Reihenfolge beim Unescapen.
+    private static String unescapeField(String value, String trenner) {
+        return value.replace("\\" + trenner, trenner).replace("\\\\", "\\");
+    }
+
+    private static String formatZeile(Artikel a, String t) {
+        String basis = a.getKategorie() + t
+                + a.getId() + t
+                + escapeField(a.getName(), t) + t
+                + escapeField(a.getMarke(), t) + t
+                + String.format(Locale.US, "%.2f", a.getPreis()) + t
+                + a.getBestand() + t
                 + a.istFavorit();
 
-        // Typ-spezifische Extras
         if (a instanceof ElektronikArtikel) {
             ElektronikArtikel e = (ElektronikArtikel) a;
-            String batterie = e.getBatterieTyp() == null ? "" : e.getBatterieTyp();
-            return basis + trenner + e.getGarantieMonate() + trenner + batterie;
+            String batterie = e.getBatterieTyp() == null ? "" : escapeField(e.getBatterieTyp(), t);
+            return basis + t + e.getGarantieMonate() + t + batterie;
         }
         if (a instanceof Lebensmittel) {
             Lebensmittel l = (Lebensmittel) a;
-            return basis + trenner + l.getHaltbarBis() + trenner + l.istBio();
+            return basis + t + l.getHaltbarBis() + t + l.istBio();
         }
         if (a instanceof Kleidung) {
             Kleidung k = (Kleidung) a;
-            return basis + trenner + k.getGroesse() + trenner + k.getMaterial();
+            return basis + t + k.getGroesse() + t + escapeField(k.getMaterial(), t);
         }
-        // Sollte nie passieren — alle Subklassen werden oben abgedeckt.
         throw new IllegalStateException("Unbekannte Artikel-Subklasse: "
                 + a.getClass().getName());
     }
 
     private static Artikel parseZeile(String zeile, String trenner)
             throws UngueltigeEingabeException {
-        // -1 sorgt dafuer, dass auch leere Trailing-Felder nicht abgeschnitten werden
-        String[] felder = zeile.split(trenner, -1);
+        // Nur an nicht-escapetem Trennzeichen splitten (kein Backslash davor).
+        String[] felder = zeile.split("(?<!\\\\)" + Pattern.quote(trenner), -1);
         if (felder.length < 9) {
             throw new UngueltigeEingabeException(
                     "Zeile hat zu wenige Felder (" + felder.length + "): " + zeile);
@@ -169,8 +177,8 @@ public class DateiService {
 
         String typ = felder[0];
         int id = Integer.parseInt(felder[1]);
-        String name = felder[2];
-        String marke = felder[3];
+        String name = unescapeField(felder[2], trenner);
+        String marke = unescapeField(felder[3], trenner);
         // Locale.US -> Punkt als Dezimaltrenner (so wurde auch geschrieben)
         double preis = Double.parseDouble(felder[4]);
         int bestand = Integer.parseInt(felder[5]);
@@ -183,7 +191,7 @@ public class DateiService {
             ElektronikArtikel e = new ElektronikArtikel(
                     id, name, marke, preis, bestand, garantieMonate);
             if (!batterieTyp.isEmpty()) {
-                e.batterieHinzufuegen(batterieTyp);
+                e.batterieHinzufuegen(unescapeField(batterieTyp, trenner));
             }
             a = e;
         } else if (typ.equals("Lebensmittel")) {
@@ -191,9 +199,8 @@ public class DateiService {
             boolean bio = Boolean.parseBoolean(felder[8]);
             a = new Lebensmittel(id, name, marke, preis, bestand, haltbarBis, bio);
         } else if (typ.equals("Kleidung")) {
-            // Groesse.valueOf wirft IllegalArgumentException bei unbekanntem Wert
             Groesse groesse = Groesse.valueOf(felder[7]);
-            String material = felder[8];
+            String material = unescapeField(felder[8], trenner);
             a = new Kleidung(id, name, marke, preis, bestand, groesse, material);
         } else {
             throw new UngueltigeEingabeException("Unbekannter Artikel-Typ: " + typ);

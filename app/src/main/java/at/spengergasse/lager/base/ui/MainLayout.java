@@ -24,12 +24,11 @@ public final class MainLayout extends AppLayout {
     }
 
     private Component createApplicationHeader() {
-        // TODO Replace with real application logo and name
-        var appLogo = new Avatar("My Application");
+        var appLogo = new Avatar("Lagerverwaltung");
         appLogo.addClassName("app-logo");
         appLogo.addThemeVariants(AvatarVariant.AURA_FILLED, AvatarVariant.XSMALL);
 
-        var appName = new Span("My Application");
+        var appName = new Span("Lagerverwaltung");
         appName.addClassName("app-name");
 
         var header = new HorizontalLayout(appLogo, appName);
