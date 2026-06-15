@@ -14,12 +14,16 @@ drei Kategorien: Elektronik, Lebensmittel und Kleidung. Der Aufbau folgt klaren 
 
 - **Modell** – `Artikel` (abstrakt) mit den Unterklassen `ElektronikArtikel`,
   `Lebensmittel`, `Kleidung` sowie dem Aufzählungstyp `Groesse`.
-- **Verwaltung** – `LagerVerwaltung` hält die Artikelliste und bietet Anlegen/Löschen/Suchen,
-  Filtern, Sortieren, Gruppieren, Auswerten, Favoriten und einen Verlauf.
+- **Verwaltung** – `LagerVerwaltung` hält die Artikelliste und bietet Anlegen/Ändern/Löschen/
+  Suchen, Filtern, Sortieren, Gruppieren, Auswerten, Favoriten und einen Verlauf.
 - **Persistenz** – `DateiService` speichert/lädt als Text- oder CSV-Datei.
+- **Anwendung** – `LagerService` (Spring-`@Service`): geteilte `LagerVerwaltung`, lädt beim
+  Start und speichert bei jeder Änderung.
+- **GUI** – drei Vaadin-Views (`ArtikelListeView`, `StatistikView`, `VerlaufView`) im Rahmen
+  von `MainLayout`/`ViewTitle`, gestartet über `Application`.
 - **Hilfsklassen** – `LogEintrag` (Verlaufseintrag) und `UngueltigeEingabeException`.
-- **GUI** – `Application`, `MainLayout`, `ViewTitle` (Vaadin-Gerüst; Seiten noch offen).
-- **Demo & Tests** – `LagerverwaltungDemo` (Konsole) und `DateiServiceTest` (JUnit).
+- **Demo & Tests** – `LagerverwaltungDemo` (Konsole), `DateiServiceTest` und
+  `LagerVerwaltungTest` (JUnit).
 
 Konvention: Klassen, Methoden, Kommentare und Texte auf **Deutsch**. Ungültige Eingaben
 lösen die geprüfte `UngueltigeEingabeException` aus. Paket: `at.spengergasse.lager`.
@@ -325,6 +329,19 @@ public boolean entfernen(int id)
 
 ```java
 /**
+ * Ändert einen vorhandenen Artikel (Replace-by-ID); die ID der neuen Daten muss mit der
+ * Ziel-ID übereinstimmen (intern: lineare Suche + set + Verlaufseintrag).
+ *
+ * @param id          ID des zu ändernden Artikels
+ * @param neueArtikel neue Artikeldaten (muss dieselbe ID haben)
+ * @return true, wenn ein Artikel mit dieser ID gefunden und ersetzt wurde
+ * @throws UngueltigeEingabeException wenn neueArtikel null ist oder die ID nicht passt
+ */
+public boolean aendern(int id, Artikel neueArtikel)
+```
+
+```java
+/**
  * Sucht den ersten Artikel mit dem angegebenen Namen (intern: equalsIgnoreCase).
  *
  * @param name gesuchter Name
@@ -373,6 +390,22 @@ public ArrayList<Artikel> filterNachBestand(int min)
  * @return Liste der Artikel dieser Marke
  */
 public ArrayList<Artikel> filterNachMarke(String marke)
+```
+
+```java
+/**
+ * Mehrfach-Filter (Kategorie + Marke + Preisbereich) in einem Aufruf; leere/null Kriterien
+ * werden ignoriert. Wird von der GUI-Filterleiste genutzt.
+ *
+ * @param kategorie Kategoriename oder null/"" für alle
+ * @param marke     Marke oder null/"" für alle
+ * @param minPreis  untere Preisgrenze
+ * @param maxPreis  obere Preisgrenze
+ * @return Liste der Artikel, die alle gesetzten Kriterien erfüllen
+ * @throws UngueltigeEingabeException wenn minPreis größer als maxPreis ist
+ */
+public ArrayList<Artikel> filtern(String kategorie, String marke,
+                                  double minPreis, double maxPreis)
 ```
 
 ```java
@@ -643,10 +676,153 @@ public UngueltigeEingabeException(String msg)
 
 ---
 
-## GUI (Vaadin) – nur Gerüst
+## LagerService (Spring-Anbindung der GUI)
 
-> Stand: nur das Spring-Boot/Vaadin-Gerüst, **noch keine fachlichen Seiten** (Tabelle,
-> Eingabeformular, Filter, Statistik). Die Angabe verlangt mindestens drei Seiten – offen.
+Spring-`@Service`. Hält **eine** gemeinsame `LagerVerwaltung` für alle Views, lädt beim Start
+aus `data/lager.csv` (oder legt Demo-Daten an) und **speichert nach jeder Änderung**. Die
+Geschäftslogik bleibt in `LagerVerwaltung`; der Service kümmert sich nur um die geteilte
+Instanz und die Persistenz.
+
+```java
+/**
+ * Wird von Spring nach dem Erzeugen einmal aufgerufen (@PostConstruct): lädt vorhandene
+ * Daten aus der CSV-Datei oder legt beim ersten Start Demo-Daten an.
+ */
+void init()
+```
+
+```java
+// Lesende Methoden – reichen nur an die LagerVerwaltung durch (kein Speichern)
+public ArrayList<Artikel> alleAnzeigen()        // @return Kopie der Artikelliste
+public int anzahl()                             // @return Anzahl der Artikel
+public ArrayList<Artikel> filtern(String kategorie, String marke, double minPreis, double maxPreis)
+                                                // @return gefilterte Liste  @throws UngueltigeEingabeException wenn minPreis > maxPreis
+public double gesamtWert()                      // @return Summe Preis × Bestand
+public double durchschnittPreis()               // @return Durchschnittspreis (0 wenn leer)
+public int gesamtBestand()                      // @return Summe der Stückzahlen
+public Artikel teuersterArtikel()               // @return teuerster Artikel oder null
+public Artikel guenstigsterArtikel()            // @return günstigster Artikel oder null
+public ElektronikArtikel teuerstesElektronik()  // @return teuerstes Gerät oder null
+public Kleidung teuersteKleidung()              // @return teuerstes Stück oder null
+public Map<String, ArrayList<Artikel>> gruppiereNachKategorie()  // @return Gruppen je Kategorie
+public ArrayList<Lebensmittel> abgelaufeneLebensmittel()         // @return abgelaufene Lebensmittel
+public ArrayList<LogEintrag> getVerlauf()       // @return Verlauf (Kopie)
+```
+
+```java
+/**
+ * Legt einen Artikel an und speichert (intern: verwaltung.hinzufuegen + speichern).
+ * @param a neuer Artikel
+ * @throws UngueltigeEingabeException wenn a ungültig ist oder die ID schon existiert
+ */
+public void hinzufuegen(Artikel a)
+
+/**
+ * Ändert einen Artikel und speichert (intern: verwaltung.aendern(a.getId(), a) + speichern).
+ * @param a geänderter Artikel (gleiche ID wie das Original)
+ * @throws UngueltigeEingabeException wenn a ungültig ist
+ */
+public void aktualisieren(Artikel a)
+
+/**
+ * Entfernt den Artikel mit der ID und speichert bei Erfolg.
+ * @param id zu löschende ID
+ * @return true, wenn etwas gelöscht wurde
+ */
+public boolean entfernen(int id)
+
+/**
+ * Setzt/entfernt die Favoritenmarkierung und speichert bei Erfolg.
+ * @param id      ID des Artikels
+ * @param favorit Markierung setzen (true) oder entfernen (false)
+ * @return true, wenn die ID gefunden wurde
+ */
+public boolean markiereFavorit(int id, boolean favorit)
+```
+
+```java
+private void speichern()   // schreibt die Liste nach data/lager.csv (legt den Ordner an); Fehler nicht fatal
+private void seedDemo()    // legt sechs Beispiel-Artikel an (nur beim allerersten Start)
+```
+
+---
+
+## GUI (Vaadin)
+
+Drei Views mit Navigation (`@Route` + `@Menu`), gemeinsamer Rahmen über `MainLayout`. Die
+Views enthalten **keine Geschäftslogik** – sie rufen den `LagerService`. Paket der Views:
+`at.spengergasse.lager.ui`.
+
+### ArtikelListeView (`@Route("")` – Startseite)
+
+Tabelle aller Artikel mit sortierbaren Spalten, Suche, Mehrfach-Filter und CRUD
+(Neu/Bearbeiten/Löschen) sowie Favoriten-Stern.
+
+```java
+/**
+ * Baut die Seite auf (Werkzeugleiste, Filterleiste, Grid) und lädt die Artikel.
+ * @param service eingespritzter LagerService (Datenzugriff)
+ */
+public ArtikelListeView(LagerService service)
+
+private HorizontalLayout erstelleWerkzeugleiste()  // @return Leiste mit "Neuer Artikel" + Suchfeld
+private HorizontalLayout erstelleFilterleiste()    // @return Leiste mit Kategorie/Marke/Preis-Filter
+private void erstelleTabelle()                     // baut die Grid-Spalten (inkl. Favorit + Aktionen)
+private void aktualisiere()                        // holt gefilterte Liste vom Service und füllt das Grid
+private boolean sucheTrifft(Artikel a)             // @param a Zeile  @return true, wenn Name den Suchtext enthält
+private void oeffneDialog(Artikel vorhanden)       // @param vorhanden null = neu, sonst bearbeiten
+```
+
+### ArtikelFormDialog (Dialog zum Anlegen/Bearbeiten)
+
+Zeigt je nach Kategorie die passenden Zusatzfelder; die Validierung kommt aus den
+Modell-Konstruktoren (werfen `UngueltigeEingabeException`, hier nur gefangen und angezeigt).
+
+```java
+/**
+ * @param vorhanden zu bearbeitender Artikel oder null für einen neuen
+ * @param callback  wird beim Speichern aufgerufen (hinzufügen oder aktualisieren)
+ */
+public ArtikelFormDialog(Artikel vorhanden, Speichern callback)
+
+private void zeigePassendeFelder()                  // blendet Zusatzfelder je Kategorie ein/aus
+private void vorbefuellen()                          // füllt Felder beim Bearbeiten (ID + Kategorie gesperrt)
+private void aufSpeichern(Speichern callback)        // baut den Artikel, ruft callback, schließt bei Erfolg
+private Artikel baueArtikel()                        // @return aus den Feldern erzeugter Artikel  @throws UngueltigeEingabeException bei ungültigen Eingaben
+private int    pflichtInt(IntegerField f, String name)    // @return Pflicht-Ganzzahl  @throws UngueltigeEingabeException wenn leer
+private double pflichtDouble(NumberField f, String name)  // @return Pflicht-Kommazahl @throws UngueltigeEingabeException wenn leer
+```
+
+> Geschachtelte Schnittstelle `Speichern`: `void speichern(Artikel a) throws UngueltigeEingabeException`
+> – der Rückruf, den die View beim Öffnen setzt (Anlegen bzw. Ändern + Speichern).
+
+### StatistikView (`@Route("statistik")`)
+
+Zeigt die Auswertungen des Service (reine Anzeige).
+
+```java
+/**
+ * @param service eingespritzter LagerService (liefert die Kennzahlen)
+ */
+public StatistikView(LagerService service)
+
+private HorizontalLayout zeile(String label, String wert)  // @return eine Kennzahl-Zeile (fetter Name + Wert)
+private Span ueberschrift(String text)                     // @return Zwischenüberschrift
+private String beschreibe(Artikel a)                       // @param a Artikel oder null  @return "Name (Preis)" bzw. "-"
+```
+
+### VerlaufView (`@Route("verlauf")`)
+
+Zeigt das Änderungs-Log (neueste zuerst).
+
+```java
+/**
+ * @param service eingespritzter LagerService (liefert getVerlauf())
+ */
+public VerlaufView(LagerService service)
+```
+
+### Rahmen (aus dem Vaadin-Gerüst)
 
 **Application**
 
@@ -705,21 +881,31 @@ public static void main(String[] args)
 - **`laden_leereDate_liefertNull_Artikel()`** — Prüft, dass eine leere Datei zu 0 Artikeln führt (kein Fehler).
 - **`laden_nichtExistenteDatei_wirftException()`** — Prüft, dass eine nicht vorhandene Datei eine `UngueltigeEingabeException` auslöst.
 
-> Hinweis: Es fehlen noch JUnit-Tests **für `LagerVerwaltung`** selbst (Anlegen/Löschen,
-> Filter, Sortierung, Auswertungen) – von der Angabe gefordert.
+**LagerVerwaltungTest** (JUnit 5; testet die `aendern`-Methode)
+
+- **`aendern_existierenderArtikel_wirdErsetzt()`** — Ein vorhandener Artikel wird per ID ersetzt; Preis und Anzahl stimmen danach.
+- **`aendern_nichtExistiert_gibtFalse()`** — Ändern einer unbekannten ID liefert `false`.
+- **`aendern_null_wirft()`** — `null` als neue Daten löst `UngueltigeEingabeException` aus.
+- **`aendern_idMismatch_wirft()`** — Passt die ID der neuen Daten nicht zur Ziel-ID, wird geworfen.
 
 ---
 
 ## Starten & Bauen
 
 - Build-Datei: `app/pom.xml` (`groupId = at.spengergasse`, `artifactId = lagerverwaltung`), Java 17+ (eingestellt auf 25).
-- Vaadin-App starten: `cd app` und dann `.\mvnw spring-boot:run` (erster Start 2–5 Minuten wegen Frontend-Build).
+- Vaadin-App starten: `cd app` und dann `.\mvnw spring-boot:run` (erster Start 2–5 Minuten wegen Frontend-Build), dann `http://localhost:8080`.
+- Laufzeit-Daten: `app/data/lager.csv` (wird beim ersten Start angelegt; steht in `.gitignore`).
 - Tests ausführen: `cd app` und dann `.\mvnw test`.
 - Konsolen-Demo: `LagerverwaltungDemo.main()` in der IDE starten.
 
-## Noch offen (laut Angabe)
+## Stand der Angabe-Anforderungen
 
-1. **GUI-Seiten** (mind. drei mit Navigation, Tabelle, Eingabeformular, Filter, Statistik) – noch keine vorhanden.
-2. **Laden beim Start / Speichern bei Änderung** – Datei-Methoden vorhanden, aber noch nicht im App-Lebenszyklus verdrahtet.
-3. **JUnit-Tests für `LagerVerwaltung`** – bisher nur `DateiService` getestet.
-4. **Ändern-Funktion in `LagerVerwaltung`** – fehlt (Ändern derzeit nur über Löschen + neu Anlegen).
+Die ursprünglich offenen Punkte sind umgesetzt:
+
+1. **GUI-Seiten** – ✅ drei Views (`ArtikelListeView`, `StatistikView`, `VerlaufView`) mit Navigation, Grid, CRUD-Formular, Suche, Mehrfach-Filter, sortierbaren Spalten und Statistik.
+2. **Laden beim Start / Speichern bei Änderung** – ✅ über `LagerService` (`data/lager.csv`).
+3. **JUnit-Tests für `LagerVerwaltung`** – ✅ `LagerVerwaltungTest` (Ändern-Funktion).
+4. **Ändern-Funktion** – ✅ `LagerVerwaltung.aendern(...)`.
+
+Mögliche nächste Schritte (optional): mehr JUnit-Tests für Filter/Sortierung/Auswertungen
+und Feinschliff der Formular-Validierung.
