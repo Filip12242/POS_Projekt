@@ -58,6 +58,27 @@ public class LagerVerwaltung {
         return false;
     }
 
+    // Aendert einen bestehenden Artikel komplett (Replace-by-ID).
+    // Die ID der neuen Artikeldaten muss mit der Ziel-ID uebereinstimmen.
+    public boolean aendern(int id, Artikel neueArtikel) throws UngueltigeEingabeException {
+        if (neueArtikel == null) {
+            throw new UngueltigeEingabeException("Artikel darf nicht null sein");
+        }
+        if (neueArtikel.getId() != id) {
+            throw new UngueltigeEingabeException(
+                    "ID der neuen Artikeldaten muss mit der Ziel-ID ueberinstimmen");
+        }
+        for (int i = 0; i < artikelListe.size(); i++) {
+            if (artikelListe.get(i).getId() == id) {
+                artikelListe.set(i, neueArtikel);
+                log("Geaendert: " + neueArtikel.getKategorie() + " #" + id
+                        + " (" + neueArtikel.getName() + ")");
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Sucht den ersten Artikel mit dem angegebenen Namen (case-insensitive).
     // Gibt null zurueck, wenn nichts gefunden wurde.
     public Artikel suchen(String name) {
