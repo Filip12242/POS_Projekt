@@ -12,3 +12,6 @@
 node_modules/
 src/main/frontend/generated/
 vite.generated.ts
+
+# Laufzeit-Datenbestand der Lagerverwaltung (wird beim Start erzeugt)
+data/

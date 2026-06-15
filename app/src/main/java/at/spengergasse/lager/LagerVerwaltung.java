@@ -147,6 +147,34 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
+    // Mehrfach-Filter (Kategorie + Marke + Preisbereich) in einem Aufruf.
+    // Leere/null Kriterien werden ignoriert. Erfuellt "Filter nach >= 2 Kriterien".
+    public ArrayList<Artikel> filtern(String kategorie, String marke,
+                                      double minPreis, double maxPreis)
+            throws UngueltigeEingabeException {
+        if (minPreis > maxPreis) {
+            throw new UngueltigeEingabeException(
+                    "minPreis (" + minPreis + ") darf nicht groesser als maxPreis ("
+                            + maxPreis + ") sein");
+        }
+        ArrayList<Artikel> ergebnis = new ArrayList<>();
+        for (Artikel a : artikelListe) {
+            if (kategorie != null && !kategorie.isBlank()
+                    && !a.getKategorie().equalsIgnoreCase(kategorie)) {
+                continue;
+            }
+            if (marke != null && !marke.isBlank()
+                    && !a.getMarke().equalsIgnoreCase(marke)) {
+                continue;
+            }
+            if (a.getPreis() < minPreis || a.getPreis() > maxPreis) {
+                continue;
+            }
+            ergebnis.add(a);
+        }
+        return ergebnis;
+    }
+
     // Alle Lebensmittel-Artikel, die bereits abgelaufen sind.
     // Zeigt instanceof + Cast — Polymorphie auf Subklassen-Ebene.
     public ArrayList<Lebensmittel> abgelaufeneLebensmittel() {
