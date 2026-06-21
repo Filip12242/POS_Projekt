@@ -3,9 +3,7 @@ package at.spengergasse.lager;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-// Ein Eintrag im Verlaufs-Log der LagerVerwaltung.
-// Wird bei jeder CRUD-Aktion (hinzufuegen / entfernen / aendern) angelegt.
-// Erfuellt das optionale Feature "Verlaufs- oder Logfunktion" aus der Aufgabe.
+// Ein Eintrag im Verlaufs-Log: Zeitpunkt + was gemacht wurde (hinzufuegen/entfernen/aendern).
 public class LogEintrag {
 
     private static final DateTimeFormatter FORMAT =

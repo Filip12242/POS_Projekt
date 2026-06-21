@@ -6,9 +6,7 @@ public class ElektronikArtikel extends Artikel {
 
     private int garantieMonate;
 
-    // Wenn null -> keine Batterie. Wenn gesetzt -> Batterie mit diesem Typ.
-    // Frueher gab es zusaetzlich ein 'hatBatterie:boolean'-Feld; das war redundant,
-    // weil es immer (batterieTyp != null) entsprach. Jetzt nur noch ein Feld.
+    // null = keine Batterie, sonst der Batterietyp.
     private String batterieTyp;
 
     public ElektronikArtikel(int id, String name, String marke,
@@ -47,7 +45,6 @@ public class ElektronikArtikel extends Artikel {
         this.batterieTyp = null;
     }
 
-    // "Hat Batterie?" wird aus dem Typ-Feld abgeleitet — keine doppelte Buchfuehrung.
     public boolean istMitBatterie() {
         return batterieTyp != null;
     }

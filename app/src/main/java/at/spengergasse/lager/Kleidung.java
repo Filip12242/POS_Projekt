@@ -37,14 +37,11 @@ public class Kleidung extends Artikel {
         this.material = material;
     }
 
-    // Prueft, ob diese Kleidung kleiner oder gleich der angegebenen Groesse ist.
-    // ordinal() liefert die Position im Enum: XS=0, S=1, M=2, L=3, XL=4
+    // ordinal() gibt die Position im Enum zurueck: XS=0, S=1, M=2, L=3, XL=4
     public boolean istGroesseKleinerGleich(Groesse vergleich) {
         return this.groesse.ordinal() <= vergleich.ordinal();
     }
 
-    // Prueft, ob das Material ein Naturfaserstoff ist.
-    // Beispielnutzung: Filter im Shop ("nur Naturmaterialien anzeigen").
     public boolean istMaterialNatuerlich() {
         String m = material.toLowerCase();
         return m.equals("baumwolle")

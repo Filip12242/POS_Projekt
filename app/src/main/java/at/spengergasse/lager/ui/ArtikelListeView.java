@@ -21,9 +21,8 @@ import com.vaadin.flow.router.Route;
 
 import java.util.List;
 
-// Haupt-View: Tabelle aller Artikel mit Suche, Mehrfach-Filter, sortierbaren
-// Spalten und CRUD (Neu / Bearbeiten / Loeschen) sowie Favoriten-Stern.
-// Enthaelt KEINE Geschaeftslogik - alles geht ueber den LagerService.
+// Haupt-View: Tabelle aller Artikel mit Suche, Filter, Sortierung, CRUD und Favoriten-Stern.
+// Keine Geschaeftslogik hier, alles laeuft ueber LagerService.
 @Route("")
 @Menu(order = 1, icon = "vaadin:package", title = "Artikel")
 public class ArtikelListeView extends VerticalLayout {

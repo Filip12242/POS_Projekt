@@ -4,9 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Map;
 
-// Demo-Klasse, um das Backend auf der Konsole zu testen.
-// Wird ueber "Run" auf der main-Methode aus IntelliJ gestartet.
-// Hat NICHTS mit der Vaadin-App zu tun — laeuft komplett unabhaengig.
+// Testet das Backend auf der Konsole, ohne Vaadin/Browser. Einfach die main-Methode starten.
 public class LagerverwaltungDemo {
 
     public static void main(String[] args) {
@@ -14,9 +12,8 @@ public class LagerverwaltungDemo {
         LagerVerwaltung v = new LagerVerwaltung();
 
         try {
-            // ---- Sechs Artikel anlegen (gemischt aus allen drei Subklassen) ----
-            // Datumsangaben relativ zu heute, damit der Demo immer sinnvolle
-            // Ergebnisse zeigt (sonst veraltet das Hardcoded-Datum).
+            // ---- 6 Artikel anlegen, gemischt aus allen 3 Kategorien ----
+            // Datum relativ zu heute, damit es nicht irgendwann veraltet.
 
             ElektronikArtikel laptop = new ElektronikArtikel(
                     1, "ThinkPad X1", "Lenovo", 1499.00, 5, 24);
@@ -121,7 +118,6 @@ public class LagerverwaltungDemo {
             System.out.println();
 
             // ---- Aggregate ----
-            // Ergebnisse einmal holen und zwischenspeichern — jeder Aufruf scannt die Liste.
             Artikel teuerster = v.teuersterArtikel();
             Artikel guenstigster = v.guenstigsterArtikel();
             ElektronikArtikel teuerstesEl = v.teuerstesElektronik();
@@ -160,7 +156,7 @@ public class LagerverwaltungDemo {
             }
             System.out.println();
 
-            // ---- Favoriten (optionales Feature) ----
+            // ---- Favoriten ----
             System.out.println("=== Favoriten markieren ===");
             v.markiereFavorit(1, true);   // Laptop
             v.markiereFavorit(3, true);   // Joghurt
@@ -210,8 +206,7 @@ public class LagerverwaltungDemo {
             }
             System.out.println();
 
-            // ---- Verlaufs-Log (optionales Feature) ----
-            // Am Ende, damit alle vorherigen Aktionen drinstehen.
+            // ---- Verlaufs-Log am Ende, damit alle Aktionen von oben drinstehen ----
             System.out.println("=== Verlaufs-Log (" + v.getVerlauf().size() + " Eintraege) ===");
             for (LogEintrag e : v.getVerlauf()) {
                 System.out.println(e);

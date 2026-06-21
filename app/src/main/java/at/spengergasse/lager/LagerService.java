@@ -8,10 +8,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Map;
 
-// Spring-Service: haelt EINE gemeinsame LagerVerwaltung fuer alle Views.
-// Laedt beim Start aus der CSV-Datei (oder legt Demo-Daten an) und speichert
-// nach jeder veraendernden Aktion. Die Geschaeftslogik bleibt in LagerVerwaltung;
-// dieser Service kuemmert sich nur um die gemeinsame Instanz und die Persistenz.
+// Spring-Service: eine gemeinsame LagerVerwaltung fuer alle Views.
+// Laedt beim Start aus der CSV (oder legt Demo-Daten an) und speichert nach jeder Aenderung.
 @Service
 public class LagerService {
 
@@ -19,7 +17,6 @@ public class LagerService {
 
     private final LagerVerwaltung verwaltung = new LagerVerwaltung();
 
-    // Beim Start einmal aufgerufen: laden oder mit Demo-Daten initialisieren.
     @PostConstruct
     void init() {
         File f = new File(DATEI);
@@ -27,7 +24,7 @@ public class LagerService {
             try {
                 verwaltung.ladenAusCSV(DATEI);
             } catch (UngueltigeEingabeException e) {
-                // Defekte/unlesbare Datei -> mit leerem Lager weiterarbeiten.
+                // Datei kaputt/unlesbar -> einfach mit leerem Lager weitermachen.
             }
         } else {
             seedDemo();
@@ -99,7 +96,7 @@ public class LagerService {
     }
 
     public void aktualisieren(Artikel a) throws UngueltigeEingabeException {
-        verwaltung.aendern(a.getId(), a);   // Kollegen-Methode aus LagerVerwaltung
+        verwaltung.aendern(a.getId(), a);
         speichern();
     }
 
@@ -129,11 +126,11 @@ public class LagerService {
             }
             verwaltung.speichernAlsCSV(DATEI);
         } catch (UngueltigeEingabeException e) {
-            // Persistenz-Fehler ist nicht fatal: weiter im Speicher arbeiten.
+            // Speichern fehlgeschlagen ist nicht schlimm, App laeuft trotzdem weiter.
         }
     }
 
-    // Ein paar Beispiel-Artikel fuer den ersten Start.
+    // Beispiel-Artikel fuer den ersten Start.
     private void seedDemo() {
         try {
             ElektronikArtikel laptop =
@@ -151,7 +148,7 @@ public class LagerService {
             verwaltung.hinzufuegen(new Kleidung(6, "Winterjacke", "Jack Wolfskin",
                     199.00, 3, Groesse.XL, "Polyester"));
         } catch (UngueltigeEingabeException e) {
-            // Demo-Daten sind statisch gueltig; sollte nie passieren.
+            // kann nicht passieren, die Demo-Werte sind fix und gueltig
         }
     }
 }

@@ -7,14 +7,11 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
 
-// Verwaltet alle Artikel im Lager.
-// Diese Klasse haelt die Liste und stellt alle fachlichen Operationen bereit:
-// CRUD, Filter, Sortierung, Gruppierung, Auswertungen, Combo-Methoden,
-// Favoriten-Filter und ein Verlaufs-Log (optionale Features lt. Aufgabe).
+// Haelt die Artikel-Liste und alle Operationen darauf: CRUD, Filter, Sortierung,
+// Gruppierung, Auswertungen und ein Verlaufs-Log.
 public class LagerVerwaltung {
 
     private ArrayList<Artikel> artikelListe;
-    // Verlaufs-Log: bei jeder CRUD-Aktion wird ein Eintrag angelegt.
     private ArrayList<LogEintrag> verlauf;
 
     public LagerVerwaltung() {
@@ -22,8 +19,6 @@ public class LagerVerwaltung {
         this.verlauf = new ArrayList<>();
     }
 
-    // Interner Helfer, der einen Log-Eintrag anlegt. Wird von allen
-    // mutierenden Methoden aufgerufen.
     private void log(String aktion) {
         verlauf.add(new LogEintrag(aktion));
     }
@@ -33,7 +28,6 @@ public class LagerVerwaltung {
         if (a == null) {
             throw new UngueltigeEingabeException("Artikel darf nicht null sein");
         }
-        // Pruefen, ob ID schon vergeben ist
         for (Artikel vorhandener : artikelListe) {
             if (vorhandener.getId() == a.getId()) {
                 throw new UngueltigeEingabeException(
@@ -58,8 +52,7 @@ public class LagerVerwaltung {
         return false;
     }
 
-    // Aendert einen bestehenden Artikel komplett (Replace-by-ID).
-    // Die ID der neuen Artikeldaten muss mit der Ziel-ID uebereinstimmen.
+    // Ersetzt den Artikel mit der angegebenen ID komplett durch neueArtikel.
     public boolean aendern(int id, Artikel neueArtikel) throws UngueltigeEingabeException {
         if (neueArtikel == null) {
             throw new UngueltigeEingabeException("Artikel darf nicht null sein");
@@ -79,8 +72,7 @@ public class LagerVerwaltung {
         return false;
     }
 
-    // Sucht den ersten Artikel mit dem angegebenen Namen (case-insensitive).
-    // Gibt null zurueck, wenn nichts gefunden wurde.
+    // Sucht den ersten Artikel mit diesem Namen (case-insensitive). null wenn nicht gefunden.
     public Artikel suchen(String name) {
         if (name == null) {
             return null;
@@ -93,9 +85,7 @@ public class LagerVerwaltung {
         return null;
     }
 
-    // Gibt eine Kopie der Artikel-Liste zurueck.
-    // Kopie statt Original, damit der Aufrufer die interne Liste nicht versehentlich
-    // veraendern kann (z.B. .clear() oder .add() von aussen).
+    // Kopie der Liste, damit von aussen nicht direkt an artikelListe rumgepfuscht werden kann.
     public ArrayList<Artikel> alleAnzeigen() {
         return new ArrayList<>(artikelListe);
     }
@@ -106,7 +96,7 @@ public class LagerVerwaltung {
 
     // ---- Filter-Methoden ----
 
-    // Alle Artikel im angegebenen Preisbereich (inklusive Grenzen).
+    // Alle Artikel im Preisbereich min-max (Grenzen inklusive).
     public ArrayList<Artikel> filterNachPreis(double min, double max)
             throws UngueltigeEingabeException {
         if (min > max) {
@@ -122,7 +112,7 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
-    // Alle Artikel mit mindestens dem angegebenen Bestand.
+    // Alle Artikel mit Bestand >= min.
     public ArrayList<Artikel> filterNachBestand(int min) {
         ArrayList<Artikel> ergebnis = new ArrayList<>();
         for (Artikel a : artikelListe) {
@@ -147,8 +137,8 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
-    // Mehrfach-Filter (Kategorie + Marke + Preisbereich) in einem Aufruf.
-    // Leere/null Kriterien werden ignoriert. Erfuellt "Filter nach >= 2 Kriterien".
+    // Filter nach Kategorie + Marke + Preisbereich gleichzeitig. Leere/null Kriterien
+    // werden ignoriert.
     public ArrayList<Artikel> filtern(String kategorie, String marke,
                                       double minPreis, double maxPreis)
             throws UngueltigeEingabeException {
@@ -175,8 +165,7 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
-    // Alle Lebensmittel-Artikel, die bereits abgelaufen sind.
-    // Zeigt instanceof + Cast — Polymorphie auf Subklassen-Ebene.
+    // Alle Lebensmittel, die schon abgelaufen sind.
     public ArrayList<Lebensmittel> abgelaufeneLebensmittel() {
         ArrayList<Lebensmittel> ergebnis = new ArrayList<>();
         for (Artikel a : artikelListe) {
@@ -190,10 +179,7 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
-    // ---- Sortier-Methoden ----
-    // Jede Methode arbeitet auf einer KOPIE der Liste, damit die interne Reihenfolge
-    // erhalten bleibt. Die Comparator-Klassen sind anonyme innere Klassen — kein Lambda,
-    // damit der Code mit Java-Grundwissen (Interfaces) lesbar bleibt.
+    // ---- Sortier-Methoden (arbeiten auf einer Kopie, Original bleibt unsortiert) ----
 
     public ArrayList<Artikel> sortiereNachName() {
         ArrayList<Artikel> kopie = new ArrayList<>(artikelListe);
@@ -231,7 +217,6 @@ public class LagerVerwaltung {
 
     // ---- Aggregate / Auswertungen ----
 
-    // Gesamtwert des Lagers = Summe aller berechneWert().
     public double gesamtWert() {
         double summe = 0;
         for (Artikel a : artikelListe) {
@@ -240,7 +225,6 @@ public class LagerVerwaltung {
         return summe;
     }
 
-    // Durchschnitt der Listenpreise. 0 wenn das Lager leer ist.
     public double durchschnittPreis() {
         if (artikelListe.isEmpty()) {
             return 0;
@@ -252,7 +236,6 @@ public class LagerVerwaltung {
         return summe / artikelListe.size();
     }
 
-    // Summe der Stueckzahlen aller Artikel.
     public int gesamtBestand() {
         int summe = 0;
         for (Artikel a : artikelListe) {
@@ -261,7 +244,7 @@ public class LagerVerwaltung {
         return summe;
     }
 
-    // Artikel mit dem hoechsten Preis. null wenn das Lager leer ist.
+    // Teuerster Artikel. null wenn Lager leer.
     public Artikel teuersterArtikel() {
         if (artikelListe.isEmpty()) {
             return null;
@@ -275,7 +258,7 @@ public class LagerVerwaltung {
         return max;
     }
 
-    // Artikel mit dem niedrigsten Preis. null wenn das Lager leer ist.
+    // Guenstigster Artikel. null wenn Lager leer.
     public Artikel guenstigsterArtikel() {
         if (artikelListe.isEmpty()) {
             return null;
@@ -289,8 +272,7 @@ public class LagerVerwaltung {
         return min;
     }
 
-    // Teuerstes Elektronik-Geraet. null wenn keines vorhanden ist.
-    // Typ-spezifischer Rueckgabewert -> kein Cast beim Aufrufer noetig.
+    // Teuerstes Elektronik-Geraet. null wenn keines vorhanden.
     public ElektronikArtikel teuerstesElektronik() {
         ElektronikArtikel max = null;
         for (Artikel a : artikelListe) {
@@ -304,7 +286,7 @@ public class LagerVerwaltung {
         return max;
     }
 
-    // Teuerstes Kleidungsstueck. null wenn keines vorhanden ist.
+    // Teuerstes Kleidungsstueck. null wenn keines vorhanden.
     public Kleidung teuersteKleidung() {
         Kleidung max = null;
         for (Artikel a : artikelListe) {
@@ -320,14 +302,11 @@ public class LagerVerwaltung {
 
     // ---- Gruppierung ----
 
-    // Gruppiert die Artikel nach ihrer Kategorie (Elektronik / Lebensmittel / Kleidung).
-    // Schluessel = Kategorie-Name (aus a.getKategorie()), Wert = Liste der Artikel.
-    // TreeMap (statt HashMap) -> Keys sind alphabetisch sortiert, Ausgabe deterministisch.
+    // Gruppiert nach Kategorie. TreeMap statt HashMap, damit die Reihenfolge alphabetisch ist.
     public Map<String, ArrayList<Artikel>> gruppiereNachKategorie() {
         Map<String, ArrayList<Artikel>> gruppen = new TreeMap<>();
         for (Artikel a : artikelListe) {
             String kategorie = a.getKategorie();
-            // Wenn die Gruppe noch nicht existiert, neue Liste anlegen.
             if (!gruppen.containsKey(kategorie)) {
                 gruppen.put(kategorie, new ArrayList<Artikel>());
             }
@@ -336,11 +315,9 @@ public class LagerVerwaltung {
         return gruppen;
     }
 
-    // ---- Combo-Methode (Filter + Sortieren in einem Aufruf) ----
+    // ---- Combo-Methode: Filter + Sortieren in einem Aufruf ----
 
-    // Filtert alle Artikel >= minPreis und sortiert das Ergebnis nach Preis aufsteigend.
-    // Erfuellt die Angabe-Anforderung "mind. eine Methode, die mehrere
-    // Verarbeitungsschritte kombiniert".
+    // Alle Artikel >= minPreis, sortiert nach Preis aufsteigend.
     public ArrayList<Artikel> filterUndSortierenNachPreis(double minPreis) {
         ArrayList<Artikel> ergebnis = new ArrayList<>();
         for (Artikel a : artikelListe) {
@@ -357,7 +334,7 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
-    // ---- Favoriten-Filter (optionales Feature lt. Aufgabe) ----
+    // ---- Favoriten-Filter ----
 
     public ArrayList<Artikel> filterFavoriten() {
         ArrayList<Artikel> ergebnis = new ArrayList<>();
@@ -369,7 +346,6 @@ public class LagerVerwaltung {
         return ergebnis;
     }
 
-    // Markiert oder demarkiert einen Artikel als Favorit. Logged die Aktion.
     public boolean markiereFavorit(int id, boolean favorit) {
         for (Artikel a : artikelListe) {
             if (a.getId() == id) {
@@ -384,17 +360,14 @@ public class LagerVerwaltung {
 
     // ---- Verlaufs-Log Zugriff ----
 
-    // Gibt eine Kopie der Log-Eintraege zurueck (defensive Kopie).
     public ArrayList<LogEintrag> getVerlauf() {
         return new ArrayList<>(verlauf);
     }
 
-    // ---- Datei-Operationen (delegieren an DateiService, mit try-catch) ----
-    // Erfuellt §3 ("try-catch in der Verwaltung") und §4 ("Behandlung von I/O-Fehlern").
+    // ---- Datei-Operationen (delegieren an DateiService) ----
 
-    // Laedt Artikel aus einer Text-Datei und fuegt sie zur Liste hinzu.
-    // Defekte Zeilen werden uebersprungen und in den Log geschrieben — der Rest
-    // wird trotzdem geladen. Gibt die Anzahl erfolgreich geladener Artikel zurueck.
+    // Laedt Artikel aus einer Text-Datei. Defekte Zeilen werden uebersprungen,
+    // der Rest wird trotzdem geladen. Gibt die Anzahl erfolgreich geladener Artikel zurueck.
     public int ladenAusDatei(String dateipfad) throws UngueltigeEingabeException {
         ArrayList<Artikel> geladen;
         try {
@@ -409,7 +382,6 @@ public class LagerVerwaltung {
                 hinzufuegen(a);
                 erfolg++;
             } catch (UngueltigeEingabeException e) {
-                // z.B. doppelte ID -> ueberspringen, weiter laden
                 log("Beim Laden uebersprungen: #" + a.getId() + " (" + e.getMessage() + ")");
             }
         }
@@ -417,7 +389,6 @@ public class LagerVerwaltung {
         return erfolg;
     }
 
-    // Analog fuer CSV-Format.
     public int ladenAusCSV(String dateipfad) throws UngueltigeEingabeException {
         ArrayList<Artikel> geladen;
         try {
@@ -440,7 +411,6 @@ public class LagerVerwaltung {
         return erfolg;
     }
 
-    // Speichert die aktuelle Liste in eine Text-Datei.
     public void speichernInDatei(String dateipfad) throws UngueltigeEingabeException {
         try {
             DateiService.speichern(artikelListe, dateipfad);
@@ -451,7 +421,6 @@ public class LagerVerwaltung {
         }
     }
 
-    // Speichert die aktuelle Liste als CSV.
     public void speichernAlsCSV(String dateipfad) throws UngueltigeEingabeException {
         try {
             DateiService.speichernCSV(artikelListe, dateipfad);

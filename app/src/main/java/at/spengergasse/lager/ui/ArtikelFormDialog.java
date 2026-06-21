@@ -21,10 +21,8 @@ import com.vaadin.flow.component.textfield.TextField;
 
 import java.time.LocalDate;
 
-// Dialog zum Anlegen und Bearbeiten eines Artikels.
-// Je nach gewaehlter Kategorie werden die passenden Zusatzfelder eingeblendet.
-// Die Validierung passiert in den Modell-Konstruktoren (werfen
-// UngueltigeEingabeException) - hier wird nur gefangen und angezeigt.
+// Dialog zum Anlegen/Bearbeiten eines Artikels. Zeigt je nach Kategorie die passenden
+// Zusatzfelder. Validiert wird im Artikel-Konstruktor, hier wird der Fehler nur angezeigt.
 public class ArtikelFormDialog extends Dialog {
 
     // Callback an die View: legt an (hinzufuegen) oder speichert (aktualisieren).

@@ -12,19 +12,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-// Liest und schreibt Artikel-Listen aus/in Dateien.
-// Unterstuetzt zwei Formate: Text (semikolon-getrennt) und CSV (komma-getrennt, mit Header).
-// Beide Formate haben dasselbe Feld-Schema:
-//   Typ | ID | Name | Marke | Preis | Bestand | Favorit | Extra1 | Extra2
-//
-// Extra-Spalten je Subklasse:
-//   Elektronik:   garantieMonate | batterieTyp (leer wenn null)
-//   Lebensmittel: haltbarBis (ISO yyyy-MM-dd) | bio (true/false)
-//   Kleidung:     groesse (Enum-Name) | material
-//
-// WICHTIG: Namen / Marken / Materialien mit Trennzeichen drin (";" oder ",") werden
-// nicht escaped — fuer dieses Schulprojekt setzen wir voraus, dass die Daten kein
-// Trennzeichen enthalten.
+// Liest/schreibt Artikel-Listen aus Dateien. Zwei Formate: Text (";") und CSV ("," + Header).
+// Spalten: Typ | ID | Name | Marke | Preis | Bestand | Favorit | Extra1 | Extra2
+// Extra-Spalten je Typ:
+//   Elektronik:   garantieMonate | batterieTyp
+//   Lebensmittel: haltbarBis | bio
+//   Kleidung:     groesse | material
 public class DateiService {
 
     private static final String TRENNER_TEXT = ";";
@@ -128,14 +121,13 @@ public class DateiService {
         return ergebnis;
     }
 
-    // ---- Private Helfer: Eine Zeile schreiben / parsen ----
+    // ---- Private Helfer: eine Zeile schreiben / parsen ----
 
-    // Backslash zuerst escapen, dann das Trennzeichen — Reihenfolge ist wichtig.
+    // Backslash muss vor dem Trennzeichen escaped werden, sonst stimmt das Unescapen nicht.
     private static String escapeField(String value, String trenner) {
         return value.replace("\\", "\\\\").replace(trenner, "\\" + trenner);
     }
 
-    // Umgekehrte Reihenfolge beim Unescapen.
     private static String unescapeField(String value, String trenner) {
         return value.replace("\\" + trenner, trenner).replace("\\\\", "\\");
     }
@@ -168,7 +160,7 @@ public class DateiService {
 
     private static Artikel parseZeile(String zeile, String trenner)
             throws UngueltigeEingabeException {
-        // Nur an nicht-escapetem Trennzeichen splitten (kein Backslash davor).
+        // Nur an Trennzeichen ohne Backslash davor splitten.
         String[] felder = zeile.split("(?<!\\\\)" + Pattern.quote(trenner), -1);
         if (felder.length < 9) {
             throw new UngueltigeEingabeException(
