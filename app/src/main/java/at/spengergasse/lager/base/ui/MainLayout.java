@@ -44,7 +44,7 @@ public final class MainLayout extends AppLayout {
     }
 
     private Component createApplicationFooter() {
-        var footer = new VerticalLayout(new Span("Made with ❤️ with Vaadin"));
+        var footer = new VerticalLayout(new Span("Made with ❤️ from Ivaylo"));
         footer.setAlignItems(FlexComponent.Alignment.CENTER);
         footer.addClassName("app-footer");
         return footer;
